@@ -67,7 +67,38 @@ jobs:
             BUILD_DESKTOP=no \
             BUILD_MINIMAL=no \
             KERNEL_CONFIGURE=no \
+            COMPRESS_OUTPUTIMAGE=xz \
             SHARE_LOGS=no 
+
+      - name: Stage raw U-Boot and kernel boot files
+        working-directory: build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rootfs="${{ matrix.rootfs.name }}"
+          raw_dir="output/raw/${rootfs}"
+          extract_dir=".tmp/extract-${rootfs}"
+
+          mkdir -p "${raw_dir}/u-boot" "${raw_dir}/kernel" "${extract_dir}/u-boot" "${extract_dir}/kernel"
+
+          for deb in output/debs/linux-u-boot-*.deb; do
+            [ -e "${deb}" ] || continue
+            dpkg-deb -x "${deb}" "${extract_dir}/u-boot"
+          done
+
+          while IFS= read -r -d "" file; do
+            cp -v "${file}" "${raw_dir}/u-boot/${rootfs}-$(basename "${file}")"
+          done < <(find "${extract_dir}/u-boot" -type f \( -name "*.bin" -o -name "u-boot*" -o -name "SPL" \) -print0)
+
+          for deb in output/debs/linux-image-*.deb; do
+            [ -e "${deb}" ] || continue
+            dpkg-deb -x "${deb}" "${extract_dir}/kernel"
+          done
+
+          while IFS= read -r -d "" file; do
+            cp -v "${file}" "${raw_dir}/kernel/${rootfs}-$(basename "${file}")"
+          done < <(find "${extract_dir}/kernel" -type f -path "*/boot/*" \( -name "uImage*" -o -name "zImage*" \) -print0)
 
       - name: Upload U-Boot packages
         uses: actions/upload-artifact@v4
@@ -75,6 +106,7 @@ jobs:
           name: armbian-hummingbird-${{ matrix.rootfs.name }}-u-boot
           path: |
             build/output/debs/linux-u-boot-*.deb
+            build/output/raw/${{ matrix.rootfs.name }}/u-boot/**
           if-no-files-found: warn
 
       - name: Upload kernel packages
@@ -86,6 +118,7 @@ jobs:
             build/output/debs/linux-headers-*.deb
             build/output/debs/linux-image-*.deb
             build/output/debs/linux-libc-dev-*.deb
+            build/output/raw/${{ matrix.rootfs.name }}/kernel/**
           if-no-files-found: warn
 
       - name: Upload full image
@@ -96,3 +129,44 @@ jobs:
             build/output/images/**
             build/output/logs/**
           if-no-files-found: warn
+
+  release:
+    runs-on: ubuntu-24.04
+    needs: build
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Package release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p release-assets
+
+          for artifact_dir in release-artifacts/*; do
+            [ -d "${artifact_dir}" ] || continue
+            artifact_name="$(basename "${artifact_dir}")"
+            tar -C "${artifact_dir}" -czf "release-assets/${artifact_name}.tar.gz" .
+          done
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: armbian-hummingbird-${{ github.run_number }}-${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release create "${RELEASE_TAG}" \
+            release-assets/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Armbian Hummingbird ${RELEASE_TAG}" \
+            --notes "Automated Armbian build for the Allwinner A20 Hummingbird board."

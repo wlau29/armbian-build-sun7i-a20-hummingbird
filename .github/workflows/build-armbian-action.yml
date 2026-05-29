@@ -1,0 +1,33 @@
+name: Build Armbian Image with Armbian Action
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rootfs:
+          - name: ubuntu-24.04
+            armbian_release: noble
+          - name: ubuntu-26.04
+            armbian_release: resolute
+          - name: debian-13
+            armbian_release: trixie
+
+    steps:
+      - uses: armbian/build@main
+        with:
+          armbian_token: ${{ secrets.GITHUB_TOKEN }}
+          armbian_board: "bananapi"
+          armbian_release: ${{ matrix.rootfs.armbian_release }}
+          armbian_target: "build"
+          armbian_kernel_branch: "current"
+          armbian_ui: "server"
+          armbian_compress: "xz"
+          armbian_release_title: "Armbian Hummingbird ${{ matrix.rootfs.name }}"
+          armbian_release_tag: "armbian-hummingbird-${{ matrix.rootfs.name }}-${{ github.run_number }}-${{ github.run_attempt }}"
+          armbian_artifacts: "build/output/images/"
+          armbian_runner_clean: "yes"

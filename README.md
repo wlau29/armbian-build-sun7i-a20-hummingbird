@@ -16,8 +16,10 @@ The workflow builds these rootfs variants:
 
 Each workflow run uploads separate artifacts for:
 
-- U-Boot packages
-- Kernel packages
-- Full Armbian image and logs
+- U-Boot packages and extracted U-Boot binary files
+- Kernel packages and extracted `uImage` or `zImage` files
+- Full compressed Armbian image and logs
 
-Artifacts are named with the `armbian-hummingbird-*` prefix.
+Artifacts are named with the `armbian-hummingbird-*` prefix. The workflow also publishes the build artifacts to a GitHub Release after all rootfs builds finish.
+
+Full images are compressed with `COMPRESS_OUTPUTIMAGE=xz`, so the image file is expected to use the `.img.xz` format.
