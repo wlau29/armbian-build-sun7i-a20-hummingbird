@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wilson <wilson29@gmail.com>
+Date: Fri, 29 May 2026 02:30:00 +0000
+Subject: sun7i: hummingbird: keep GMAC TXERR low
+
+The old Hummingbird FEX does not use PA17 as a GMAC PHY reset in GMAC
+mode. It leaves the GMAC TXERR line inactive instead. Treating PA17 as an
+active-low PHY reset can deassert it high after probe and leave the MAC/PHY
+in a bad transmit state until the interface is cycled.
+
+Configure PA17 as GMAC TXERR, and enable the matching U-Boot option.
+
+Signed-off-by: wilson <wilson29@gmail.com>
+---
+ arch/arm/dts/sun7i-a20-hummingbird.dts | 12 +++++++-----
+ configs/Bananapi_defconfig             |  1 +
+ 2 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/dts/sun7i-a20-hummingbird.dts b/arch/arm/dts/sun7i-a20-hummingbird.dts
+index 77ecd7b7ad2..3b6f1f1d8ce 100644
+--- a/arch/arm/dts/sun7i-a20-hummingbird.dts
++++ b/arch/arm/dts/sun7i-a20-hummingbird.dts
+@@ -98,7 +98,7 @@
+ 
+ &gmac {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&gmac_rgmii_pins>;
++	pinctrl-0 = <&gmac_rgmii_pins>, <&gmac_txerr_pins>;
+ 	phy-handle = <&phy1>;
+ 	phy-mode = "rgmii-id";
+ 	phy-supply = <&reg_gmac_vdd>;
+@@ -138,10 +138,6 @@
+ &gmac_mdio {
+ 	phy1: ethernet-phy@1 {
+ 		reg = <1>;
+-		reset-gpios = <&pio 0 17 GPIO_ACTIVE_LOW>; /* PA17 */
+-		reset-assert-us = <10000>;
+-		/* wait 1s after reset, otherwise fail to read phy id */
+-		reset-deassert-us = <1000000>;
+ 	};
+ };
+ 
+@@ -178,6 +174,12 @@
+ 	vcc-pg-supply = <&reg_vcc3v3>;
+ 	vcc-ph-supply = <&reg_vcc3v3>;
+ 	vcc-pi-supply = <&reg_vcc3v3>;
++
++	/* PA17 is GMAC TXERR in the old working FEX; keep it inactive. */
++	gmac_txerr_pins: gmac-txerr-pins {
++		pins = "PA17";
++		function = "gmac";
++	};
+ };
+ 
+ &pwm {
+diff --git a/configs/Bananapi_defconfig b/configs/Bananapi_defconfig
+index ec3ebc22ab9..cfa1b035a12 100644
+--- a/configs/Bananapi_defconfig
++++ b/configs/Bananapi_defconfig
+@@ -4,6 +4,7 @@ CONFIG_DRAM_CLK=432
+ CONFIG_SPL=y
+ CONFIG_MACH_SUN7I=y
+ CONFIG_VIDEO_COMPOSITE=y
+ CONFIG_GMAC_TX_DELAY=3
++CONFIG_SUN7I_GMAC_FORCE_TXERR=y
+ # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
+ CONFIG_SPL_I2C=y
+ CONFIG_NETCONSOLE=y
+-- 
+Created with Armbian build tools https://github.com/armbian/build

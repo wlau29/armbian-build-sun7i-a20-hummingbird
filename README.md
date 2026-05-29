@@ -4,6 +4,28 @@ This repository contains Armbian build customisations for the Allwinner A20 Humm
 
 The GitHub Actions workflow builds Armbian images using the upstream `armbian/build` framework with the `bananapi` board target and local `userpatches`.
 
+## GMAC / Gigabit Ethernet Issue
+
+If wired Ethernet does not come up after boot, bounce the interface once.
+Some images may name the interface `eth0`; others may name it `end0`.
+
+```bash
+iface=eth0
+ip link show "$iface" >/dev/null 2>&1 || iface=end0
+
+ip link set "$iface" down
+sleep 5
+ip link set "$iface" up
+```
+
+To use the legacy `eth0` name instead of predictable names such as `end0`, edit `/boot/armbianEnv.txt` and add:
+
+```text
+extraargs=net.ifnames=0
+```
+
+Do not quote the value.
+
 ## Build Targets
 
 The workflow builds these rootfs variants:

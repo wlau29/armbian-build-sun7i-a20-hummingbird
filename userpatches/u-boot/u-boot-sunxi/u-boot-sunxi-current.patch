@@ -1,9 +1,9 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: John Doe <john.doe@somewhere.on.planet>
+From: wilson <wilson29@gmail.com>
 Date: Tue, 26 May 2026 02:35:59 +0000
 Subject: Patching u-boot sunxi files configs/Bananapi_defconfig
 
-Signed-off-by: John Doe <john.doe@somewhere.on.planet>
+Signed-off-by: wilson <wilson29@gmail.com>
 ---
  configs/Bananapi_defconfig | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

@@ -1,0 +1,212 @@
+diff --git a/arch/arm/boot/dts/allwinner/sun7i-a20-hummingbird.dts b/arch/arm/boot/dts/allwinner/sun7i-a20-hummingbird.dts
+index f1e26b75cd90..ea1e456637b1
+--- a/arch/arm/boot/dts/allwinner/sun7i-a20-hummingbird.dts
++++ b/arch/arm/boot/dts/allwinner/sun7i-a20-hummingbird.dts
+@@ -65,30 +65,43 @@ chosen {
+ 		stdout-path = "serial0:115200n8";
+ 	};
+ 
+-	reg_mmc3_vdd: regulator-mmc3-vdd {
+-		compatible = "regulator-fixed";
+-		regulator-name = "mmc3_vdd";
+-		regulator-min-microvolt = <3000000>;
+-		regulator-max-microvolt = <3000000>;
+-		enable-active-high;
+-		gpio = <&pio 7 9 GPIO_ACTIVE_HIGH>; /* PH9 */
++	mmc3_pwrseq: pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&pio 7 9 GPIO_ACTIVE_LOW>; /* PH9 WL_REG_ON */
++		clocks = <&ccu CLK_OUT_A>;
++		clock-names = "ext_clock";
+ 	};
+ 
+-	reg_gmac_vdd: regulator-gmac-vdd {
++	reg_gmac_vdd: gmac-3v3 {
+ 		compatible = "regulator-fixed";
+-		regulator-name = "gmac_vdd";
+-		regulator-min-microvolt = <3000000>;
+-		regulator-max-microvolt = <3000000>;
++		regulator-name = "gmac-3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		startup-delay-us = <600000>;
+ 		enable-active-high;
+-		gpio = <&pio 7 16 GPIO_ACTIVE_HIGH>; /* PH16 */
++		gpio = <&pio 7 16 GPIO_ACTIVE_HIGH>; /* PH16 GMAC_PWR */
+ 	};
+ };
+ 
+ &ahci {
++	ahci-supply = <&reg_vcc3v3>;
++	phy-supply = <&reg_vcc3v3>;
+ 	target-supply = <&reg_ahci_5v>;
+ 	status = "okay";
+ };
+ 
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++	operating-points =
++		/* kHz	  uV */
++		<912000	1400000>,
++		<864000	1350000>,
++		<720000	1250000>,
++		<528000	1150000>,
++		<312000	1100000>,
++		<144000	1050000>;
++};
++
+ &ehci0 {
+ 	status = "okay";
+ };
+@@ -99,9 +112,9 @@ &ehci1 {
+ 
+ &gmac {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&gmac_rgmii_pins>;
++	pinctrl-0 = <&gmac_rgmii_pins>, <&gmac_txerr_pins>;
+ 	phy-handle = <&phy1>;
+-	phy-mode = "rgmii";
++	phy-mode = "rgmii-id";
+ 	phy-supply = <&reg_gmac_vdd>;
+ 	status = "okay";
+ };
+@@ -110,12 +123,9 @@ &i2c0 {
+ 	status = "okay";
+ 
+ 	axp209: pmic@34 {
+-		compatible = "x-powers,axp209";
+ 		reg = <0x34>;
+ 		interrupt-parent = <&nmi_intc>;
+ 		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
+-		interrupt-controller;
+-		#interrupt-cells = <1>;
+ 	};
+ };
+ 
+@@ -140,25 +150,30 @@ &ir0 {
+ &gmac_mdio {
+ 	phy1: ethernet-phy@1 {
+ 		reg = <1>;
+-		reset-gpios = <&pio 0 17 GPIO_ACTIVE_LOW>; /* PA17 */
+-		reset-assert-us = <10000>;
+-		/* wait 1s after reset, otherwise fail to read phy id */
+-		reset-deassert-us = <1000000>;
+ 	};
+ };
+ 
+ &mmc0 {
+-	vmmc-supply = <&reg_vcc3v0>;
++	vmmc-supply = <&reg_vcc3v3>;
+ 	bus-width = <4>;
+ 	cd-gpios = <&pio 7 1 GPIO_ACTIVE_LOW>; /* PH1 */
+ 	status = "okay";
+ };
+ 
+ &mmc3 {
+-	vmmc-supply = <&reg_mmc3_vdd>;
++	vmmc-supply = <&reg_vcc3v3>;
++	mmc-pwrseq = <&mmc3_pwrseq>;
+ 	bus-width = <4>;
+ 	non-removable;
+ 	status = "okay";
++
++	brcmf: wifi@1 {
++		reg = <1>;
++		compatible = "brcm,bcm4329-fmac";
++		interrupt-parent = <&pio>;
++		interrupts = <7 10 IRQ_TYPE_LEVEL_LOW>; /* PH10 WL_HOST_WAKE */
++		interrupt-names = "host-wake";
++	};
+ };
+ 
+ &ohci0 {
+@@ -169,6 +184,24 @@ &ohci1 {
+ 	status = "okay";
+ };
+ 
++&pio {
++	/* PI12 provides the 32 kHz LPO clock for the AP6210 WiFi/BT module. */
++	pinctrl-names = "default";
++	pinctrl-0 = <&clk_out_a_pin>;
++	vcc-pa-supply = <&reg_vcc3v3>;
++	vcc-pb-supply = <&reg_vcc3v3>;
++	vcc-pf-supply = <&reg_vcc3v3>;
++	vcc-pg-supply = <&reg_vcc3v3>;
++	vcc-ph-supply = <&reg_vcc3v3>;
++	vcc-pi-supply = <&reg_vcc3v3>;
++
++	/* PA17 is GMAC TXERR in the old working FEX; keep it inactive. */
++	gmac_txerr_pins: gmac-txerr-pins {
++		pins = "PA17";
++		function = "gmac";
++	};
++};
++
+ &pwm {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pwm0_pin>;
+@@ -180,6 +213,45 @@ &reg_ahci_5v {
+ 	status = "okay";
+ };
+ 
++#include "axp209.dtsi"
++
++&ac_power_supply {
++	status = "okay";
++};
++
++&battery_power_supply {
++	status = "okay";
++};
++
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-int-dll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
++&usb_power_supply {
++	status = "okay";
++};
++
+ &reg_usb1_vbus {
+ 	gpio = <&pio 7 2 GPIO_ACTIVE_HIGH>; /* PH2 */
+ 	status = "okay";
+@@ -205,7 +277,18 @@ &uart0 {
+ &uart2 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart2_pi_pins>, <&uart2_cts_rts_pi_pins>;
++	uart-has-rtscts;
+ 	status = "okay";
++
++	bluetooth {
++		compatible = "brcm,bcm20702a1";
++		clocks = <&ccu CLK_OUT_A>;
++		clock-names = "lpo";
++		device-wakeup-gpios = <&pio 8 20 GPIO_ACTIVE_HIGH>; /* PI20 BT_WAKE */
++		host-wakeup-gpios = <&pio 8 21 GPIO_ACTIVE_HIGH>; /* PI21 BT_HOST_WAKE */
++		shutdown-gpios = <&pio 1 5 GPIO_ACTIVE_HIGH>; /* PB5 BT_REG_ON */
++		max-speed = <1500000>;
++	};
+ };
+ 
+ &uart3 {

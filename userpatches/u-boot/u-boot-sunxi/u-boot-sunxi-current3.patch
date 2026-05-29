@@ -1,9 +1,9 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: John Doe <john.doe@somewhere.on.planet>
+From: wilson <wilson29@gmail.com>
 Date: Wed, 27 May 2026 04:05:47 +0000
 Subject: Patching u-boot sunxi files arch/arm/dts/sun7i-a20-hummingbird.dts
 
-Signed-off-by: John Doe <john.doe@somewhere.on.planet>
+Signed-off-by: wilson <wilson29@gmail.com>
 ---
  arch/arm/dts/sun7i-a20-hummingbird.dts | 52 +++++++++-
  1 file changed, 48 insertions(+), 4 deletions(-)
