@@ -1,7 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: wilson <wilson29@gmail.com>
-Date: Tue, 26 May 2026 02:35:59 +0000
-Subject: Patching u-boot sunxi files configs/Bananapi_defconfig
+Date: Fri, 29 May 2026 03:16:30 +0000
+Subject: Patching u-boot sunxi files configs/Bananapi_defconfig to point to
+ hummingbird dts/dtb
 
 Signed-off-by: wilson <wilson29@gmail.com>
 ---
@@ -9,22 +10,25 @@ Signed-off-by: wilson <wilson29@gmail.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/configs/Bananapi_defconfig b/configs/Bananapi_defconfig
-index d99748cd5d9..6ac04bf82aa 100644
+index f4910ba13ac..cb2c855311c 100644
 --- a/configs/Bananapi_defconfig
 +++ b/configs/Bananapi_defconfig
-@@ -1,11 +1,12 @@
+@@ -1,13 +1,14 @@
  CONFIG_ARM=y
  CONFIG_ARCH_SUNXI=y
 -CONFIG_DEFAULT_DEVICE_TREE="sun7i-a20-bananapi"
 +CONFIG_DEFAULT_DEVICE_TREE="sun7i-a20-hummingbird"
- CONFIG_DRAM_CLK=432
  CONFIG_SPL=y
  CONFIG_MACH_SUN7I=y
+ CONFIG_DRAM_CLK=432
  CONFIG_VIDEO_COMPOSITE=y
  CONFIG_GMAC_TX_DELAY=3
 +CONFIG_SUN7I_GMAC_FORCE_TXERR=y
+ CONFIG_AHCI=y
  # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
  CONFIG_SPL_I2C=y
  CONFIG_NETCONSOLE=y
+ CONFIG_SCSI_AHCI=y
 -- 
 Created with Armbian build tools https://github.com/armbian/build
+
