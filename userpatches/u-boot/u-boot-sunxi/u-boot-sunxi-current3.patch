@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Doe <john.doe@somewhere.on.planet>
+Date: Wed, 27 May 2026 04:05:47 +0000
+Subject: Patching u-boot sunxi files arch/arm/dts/sun7i-a20-hummingbird.dts
+
+Signed-off-by: John Doe <john.doe@somewhere.on.planet>
+---
+ arch/arm/dts/sun7i-a20-hummingbird.dts | 52 +++++++++-
+ 1 file changed, 48 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/dts/sun7i-a20-hummingbird.dts b/arch/arm/dts/sun7i-a20-hummingbird.dts
+index 541efe02ff4..77ecd7b7ad2 100644
+--- a/arch/arm/dts/sun7i-a20-hummingbird.dts
++++ b/arch/arm/dts/sun7i-a20-hummingbird.dts
+@@ -75,17 +75,19 @@
+ 	reg_gmac_vdd: gmac-3v3 {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "gmac-3v3";
+ 		regulator-min-microvolt = <3300000>;
+ 		regulator-max-microvolt = <3300000>;
+-		startup-delay-us = <500000>;
++		startup-delay-us = <600000>;
+ 		enable-active-high;
+ 		gpio = <&pio 7 16 GPIO_ACTIVE_HIGH>; /* PH16 GMAC_PWR */
+ 	};
+ };
+ 
+ &ahci {
++	ahci-supply = <&reg_vcc3v3>;
++	phy-supply = <&reg_vcc3v3>;
+ 	target-supply = <&reg_ahci_5v>;
+ 	status = "okay";
+ };
+ 
+ &ehci0 {
+@@ -107,16 +109,13 @@
+ 
+ &i2c0 {
+ 	status = "okay";
+ 
+ 	axp209: pmic@34 {
+-		compatible = "x-powers,axp209";
+ 		reg = <0x34>;
+ 		interrupt-parent = <&nmi_intc>;
+ 		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
+-		interrupt-controller;
+-		#interrupt-cells = <1>;
+ 	};
+ };
+ 
+ &i2c1 {
+ 	status = "okay";
+@@ -179,10 +178,16 @@
+ 
+ &pio {
+ 	/* PI12 provides the 32 kHz LPO clock for the AP6210 WiFi/BT module. */
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&clk_out_a_pin>;
++	vcc-pa-supply = <&reg_vcc3v3>;
++	vcc-pb-supply = <&reg_vcc3v3>;
++	vcc-pf-supply = <&reg_vcc3v3>;
++	vcc-pg-supply = <&reg_vcc3v3>;
++	vcc-ph-supply = <&reg_vcc3v3>;
++	vcc-pi-supply = <&reg_vcc3v3>;
+ };
+ 
+ &pwm {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pwm0_pin>;
+@@ -192,10 +197,49 @@
+ &reg_ahci_5v {
+ 	gpio = <&pio 7 15 GPIO_ACTIVE_HIGH>; /* PH15 */
+ 	status = "okay";
+ };
+ 
++#include "axp209.dtsi"
++
++&ac_power_supply {
++	status = "okay";
++};
++
++&battery_power_supply {
++	status = "okay";
++};
++
++&reg_dcdc2 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-cpu";
++};
++
++&reg_dcdc3 {
++	regulator-always-on;
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1400000>;
++	regulator-name = "vdd-int-dll";
++};
++
++&reg_ldo1 {
++	regulator-name = "vdd-rtc";
++};
++
++&reg_ldo2 {
++	regulator-always-on;
++	regulator-min-microvolt = <3000000>;
++	regulator-max-microvolt = <3000000>;
++	regulator-name = "avcc";
++};
++
++&usb_power_supply {
++	status = "okay";
++};
++
+ &reg_usb1_vbus {
+ 	gpio = <&pio 7 2 GPIO_ACTIVE_HIGH>; /* PH2 */
+ 	status = "okay";
+ };
+ 
+-- 
+Created with Armbian build tools https://github.com/armbian/build
+

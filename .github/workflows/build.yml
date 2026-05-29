@@ -1,0 +1,98 @@
+name: Build Armbian Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        rootfs:
+          - name: ubuntu-24.04
+            armbian_release: noble
+          - name: ubuntu-26.04
+            armbian_release: resolute
+          - name: debian-13
+            armbian_release: trixie
+
+    steps:
+      - name: Free runner disk space
+        uses: descriptinc/free-disk-space@main
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Checkout Armbian build framework
+        uses: actions/checkout@v4
+        with:
+          repository: armbian/build
+          path: build
+
+      - name: Checkout customisations
+        uses: actions/checkout@v4
+        with:
+          path: custom
+
+      - name: Merge custom userpatches
+        shell: bash
+        run: |
+          if [ -d custom/userpatches ]; then
+            mkdir -p build/userpatches
+            rsync -a custom/userpatches/ build/userpatches/
+          fi
+
+      - name: Install build requirements
+        working-directory: build
+        shell: bash
+        run: |
+          sudo ./compile.sh requirements
+          sudo chown -R "$USER:$USER" .
+
+      - name: Build
+        working-directory: build
+        shell: bash
+        run: |
+          ./compile.sh \
+            BOARD=bananapi \
+            RELEASE="${{ matrix.rootfs.armbian_release }}" \
+            BRANCH=current \
+            BUILD_DESKTOP=no \
+            BUILD_MINIMAL=no \
+            KERNEL_CONFIGURE=no \
+            SHARE_LOGS=no 
+
+      - name: Upload U-Boot packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: armbian-hummingbird-${{ matrix.rootfs.name }}-u-boot
+          path: |
+            build/output/debs/linux-u-boot-*.deb
+          if-no-files-found: warn
+
+      - name: Upload kernel packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: armbian-hummingbird-${{ matrix.rootfs.name }}-kernel
+          path: |
+            build/output/debs/linux-dtb-*.deb
+            build/output/debs/linux-headers-*.deb
+            build/output/debs/linux-image-*.deb
+            build/output/debs/linux-libc-dev-*.deb
+          if-no-files-found: warn
+
+      - name: Upload full image
+        uses: actions/upload-artifact@v4
+        with:
+          name: armbian-hummingbird-${{ matrix.rootfs.name }}-image
+          path: |
+            build/output/images/**
+            build/output/logs/**
+          if-no-files-found: warn

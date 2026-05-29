@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Doe <john.doe@somewhere.on.planet>
+Date: Tue, 26 May 2026 02:35:59 +0000
+Subject: Patching u-boot sunxi files configs/Bananapi_defconfig
+
+Signed-off-by: John Doe <john.doe@somewhere.on.planet>
+---
+ configs/Bananapi_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configs/Bananapi_defconfig b/configs/Bananapi_defconfig
+index f4910ba13ac..ec3ebc22ab9 100644
+--- a/configs/Bananapi_defconfig
++++ b/configs/Bananapi_defconfig
+@@ -1,8 +1,8 @@
+ CONFIG_ARM=y
+ CONFIG_ARCH_SUNXI=y
+-CONFIG_DEFAULT_DEVICE_TREE="sun7i-a20-bananapi"
++CONFIG_DEFAULT_DEVICE_TREE="sun7i-a20-hummingbird"
+ CONFIG_SPL=y
+ CONFIG_MACH_SUN7I=y
+ CONFIG_DRAM_CLK=432
+ CONFIG_VIDEO_COMPOSITE=y
+ CONFIG_GMAC_TX_DELAY=3
+-- 
+Created with Armbian build tools https://github.com/armbian/build
+
